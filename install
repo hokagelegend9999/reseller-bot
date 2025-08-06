@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # =================================================================
-# Installer Script v2 untuk Hokage Reseller Bot
-# - Input Admin ID Interaktif
+# Installer Script v3 untuk Hokage Reseller Bot
+# - Input interaktif untuk BOT_TOKEN dan ADMIN_IDS
+# - KMSP_API_KEY menggunakan nilai default
 # - Otomatis menghentikan service lama jika ada
 # =================================================================
 
@@ -13,6 +14,8 @@ set -e
 REPO_URL="https://github.com/hokagelegend9999/reseller-bot.git"
 INSTALL_DIR="/opt/hokage-bot"
 SERVICE_NAME="hokage-bot"
+# <<< MODIFIKASI >>> Kunci API KMSP diatur sebagai default di sini
+DEFAULT_KMSP_API_KEY="c7d49152-51a3-4cf4-b696-af8bd60ad2d8"
 
 # --- Warna untuk Output ---
 GREEN='\033[0;32m'
@@ -21,7 +24,6 @@ NC='\033[0m' # No Color
 
 # --- Fungsi-fungsi ---
 
-# Fungsi untuk memeriksa apakah skrip dijalankan sebagai root
 check_root() {
     if [ "$(id -u)" -ne 0 ]; then
         echo -e "${YELLOW}Skrip ini harus dijalankan dengan sudo atau sebagai user root.${NC}"
@@ -29,10 +31,8 @@ check_root() {
     fi
 }
 
-# <<< BARU >>> Fungsi untuk menghentikan service yang sudah ada
 stop_existing_service() {
     echo -e "${GREEN}>>> Memeriksa apakah ada service lama yang berjalan...${NC}"
-    # Opsi --quiet akan membuat perintah tidak menghasilkan output, hanya exit code
     if systemctl is-active --quiet "${SERVICE_NAME}.service"; then
         echo -e "${YELLOW}Layanan '${SERVICE_NAME}' yang lama ditemukan aktif. Menghentikannya sekarang...${NC}"
         systemctl stop "${SERVICE_NAME}.service"
@@ -42,14 +42,12 @@ stop_existing_service() {
     fi
 }
 
-# Fungsi untuk instalasi dependency
 install_dependencies() {
     echo -e "${GREEN}>>> Mengupdate package list dan meng-install dependency...${NC}"
     apt-get update
     apt-get install -y git python3-venv python3-pip
 }
 
-# Fungsi untuk clone repository
 clone_repo() {
     echo -e "${GREEN}>>> Meng-clone repository dari GitHub...${NC}"
     if [ -d "$INSTALL_DIR" ]; then
@@ -59,7 +57,6 @@ clone_repo() {
     git clone "$REPO_URL" "$INSTALL_DIR"
 }
 
-# Fungsi untuk setup virtual environment Python
 setup_python_env() {
     echo -e "${GREEN}>>> Membuat virtual environment Python...${NC}"
     python3 -m venv "$INSTALL_DIR/venv"
@@ -69,21 +66,19 @@ setup_python_env() {
     "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt"
 }
 
-# Fungsi untuk membuat file .env
 create_env_file() {
     echo -e "${GREEN}>>> Membuat file konfigurasi .env...${NC}"
     
-    echo -e "${YELLOW}Harap masukkan informasi rahasia Anda. Data ini akan disimpan di $INSTALL_DIR/.env${NC}"
-    read -p "Masukkan BOT_TOKEN Anda: " BOT_TOKEN
-    read -p "Masukkan KMSP_API_KEY Anda: " KMSP_API_KEY
-    # <<< BARU >>> Prompt untuk ADMIN_IDS
-    read -p "Masukkan ID Telegram Admin Anda (jika lebih dari satu, pisahkan dengan koma): " ADMIN_IDS
+    echo -e "${YELLOW}Harap masukkan informasi yang diperlukan.${NC}"
+    # <<< MODIFIKASI >>> Hanya menanyakan Token Bot dan ID Admin
+    read -p "Masukkan BOT_TOKEN (Key Bot Telegram) Anda: " BOT_TOKEN
+    read -p "Masukkan ADMIN_IDS (ID Telegram Admin) Anda: " ADMIN_IDS
 
     # Membuat file .env
     cat << EOF > "$INSTALL_DIR/.env"
 # File untuk menyimpan semua rahasia bot
 BOT_TOKEN=${BOT_TOKEN}
-KMSP_API_KEY=${KMSP_API_KEY}
+KMSP_API_KEY=${DEFAULT_KMSP_API_KEY}
 ADMIN_IDS=${ADMIN_IDS}
 EOF
 
@@ -92,7 +87,6 @@ EOF
     echo -e "${GREEN}File .env berhasil dibuat dan diamankan.${NC}"
 }
 
-# Fungsi untuk membuat service systemd
 create_systemd_service() {
     echo -e "${GREEN}>>> Membuat systemd service file...${NC}"
     
@@ -119,7 +113,6 @@ EOF
     echo -e "${GREEN}File service ${SERVICE_NAME}.service berhasil dibuat.${NC}"
 }
 
-# Fungsi untuk menjalankan service
 start_service() {
     echo -e "${GREEN}>>> Memuat ulang daemon, mengaktifkan, dan menjalankan service...${NC}"
     systemctl daemon-reload
@@ -130,7 +123,7 @@ start_service() {
 # --- Main Logic ---
 main() {
     check_root
-    echo -e "${GREEN}--- Memulai Instalasi Hokage Reseller Bot v2 ---${NC}"
+    echo -e "${GREEN}--- Memulai Instalasi Hokage Reseller Bot v3 ---${NC}"
     
     stop_existing_service
     install_dependencies
